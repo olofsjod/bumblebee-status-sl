@@ -11,7 +11,7 @@ except ImportError:
 
 from tabulate import tabulate
 
-def get_stations_given_searchstr(key: str, search_str: str, max_results: int = 10, stations_only: bool = True):
+def get_json_given_url(url: str) -> dict[str, any]:
     headers = {}
     def header_function(header_line):
         """ from http://pycurl.io/docs/latest/quickstart.html """
@@ -46,7 +46,7 @@ def get_stations_given_searchstr(key: str, search_str: str, max_results: int = 1
 
     buffer = BytesIO()
     c = pycurl.Curl()
-    c.setopt(c.URL, f"https://api.sl.se/api2/typeahead.json?key={key}&searchstring={search_str}&stationsonly={stations_only}&maxresults={max_results}")
+    c.setopt(c.URL, url)
     c.setopt(c.WRITEFUNCTION, buffer.write)
     c.setopt(c.HEADERFUNCTION, header_function)
     c.setopt(c.CAINFO, certifi.where())
@@ -71,8 +71,23 @@ def get_stations_given_searchstr(key: str, search_str: str, max_results: int = 1
 
 
     body = buffer.getvalue()
+
     # Decode using the encoding we figured out.
     data = json.loads(body.decode(encoding))
+
+    return data
+
+def get_depatures_at_site(api_key: str, site_id: str, time_window: int):
+    data = get_json_given_url(f"https://api.sl.se/api2/realtimedeparturesV4.json?key={api_key}&siteid={site_id}&timewindow={time_window}")
+
+    search_result = data['ResponseData']
+    for n in ["Buses", "Metros", "Trains", "Trams", "Ships"]:
+        print(n)
+        print(tabulate(search_result[n], headers="keys"))
+
+
+def get_stations_given_searchstr(key: str, search_str: str, max_results: int = 10, stations_only: bool = True):
+    data = get_json_given_url(f"https://api.sl.se/api2/typeahead.json?key={key}&searchstring={search_str}&stationsonly={stations_only}&maxresults={max_results}")
 
     search_result = data['ResponseData']
     print(tabulate(search_result, headers="keys"))
@@ -83,15 +98,32 @@ if __name__ == "__main__":
         description="blubb"
     )
 
-    parser.add_argument("key", help="The API key.")
+    subparsers = parser.add_subparsers(
+        help="sub-command help", dest="command", required=True
+    )
 
-    parser.add_argument("search_string", help="The search string.")
+    parser_station_search = subparsers.add_parser("station_search")
 
-    parser.add_argument(
+    parser_station_search.add_argument("key", help="The API key.")
+
+    parser_station_search.add_argument("search_string", help="The search string.")
+
+    parser_station_search.add_argument(
         "max_result", help="The number of search results.", type=int, default=10
     )
 
+    parser_departure_search = subparsers.add_parser("departure_search")
+
+    parser_departure_search.add_argument("key", help="The API key.")
+
+    parser_departure_search.add_argument("site_id", help="Site id of the station.")
+
+    parser_departure_search.add_argument("time_window", help="The time window.", type=int)
+
     args = parser.parse_args()
 
-    get_stations_given_searchstr(args.key, args.search_string, args.max_result)
+    if args.command == "station_search":
+        get_stations_given_searchstr(args.key, args.search_string, args.max_result)
+    elif args.command == "departure_search":
+        get_depatures_at_site(args.key, args.site_id, args.time_window)
 
