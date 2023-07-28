@@ -77,13 +77,13 @@ def get_json_given_url(url: str) -> dict[str, any]:
 
     return data
 
-def get_depatures_at_site(api_key: str, site_id: str, time_window: int) -> dict[str, any]:
+def get_departures_at_site(api_key: str, site_id: str, time_window: int) -> dict[str, any]:
     data = get_json_given_url(f"https://api.sl.se/api2/realtimedeparturesV4.json?key={api_key}&siteid={site_id}&timewindow={time_window}")
     return data['ResponseData']
 
 
 def print_departures_at_site(api_key: str, site_id: str, time_window: int):
-    search_result = get_depatures_at_site(
+    search_result = get_departures_at_site(
         api_key, site_id, time_window
     )
 
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command == "station_search":
-        get_stations_given_searchstr(args.key, args.search_string, args.max_result)
+        print_stations_given_searchstr(args.key, args.search_string, args.max_result)
     elif args.command == "departure_search":
-        get_depatures_at_site(args.key, args.site_id, args.time_window)
+        print_departures_at_site(args.key, args.site_id, args.time_window)
 
